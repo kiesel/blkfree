@@ -1,0 +1,16 @@
+{
+  "name": "blkfree",
+  "version": "1.0.0",
+  "description": "Keep some blocks free, continuous",
+  "main": "dist/index.js",
+  "author": "Alex D'Andrea",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^16.11.7",
+    "prettier": "^2.4.1",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "yargs": "^17.2.1"
+  }
+}
