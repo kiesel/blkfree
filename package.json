@@ -10,12 +10,16 @@
     "blkfree": "yarn node dist/main.js"
   },
   "devDependencies": {
+    "@types/byte-size": "^8.1.0",
     "@types/node": "^16.11.7",
     "@types/yargs": "^17.0.5",
     "prettier": "^2.4.1",
     "typescript": "^4.4.4"
   },
   "dependencies": {
+    "byte-size": "^8.1.0",
+    "diskusage": "^1.1.3",
+    "filespy": "^1.2.4",
     "yargs": "^17.2.1"
   }
 }
