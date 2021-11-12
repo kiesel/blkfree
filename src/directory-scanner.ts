@@ -1,31 +1,38 @@
 import { Stats } from 'fs';
 import { FileSpy, filespy } from 'filespy';
-import byteSize from 'byte-size';
+import EventEmitter from 'events';
 
 export interface FileRef {
   path: string;
   stat: Stats;
 }
 
-export class DirectoryScanner {
+interface DirectoryScannerEvent {
+  stat: (stat: { count: number; size: number }) => void;
+}
+
+export declare interface DirectoryScanner {
+  on<U extends keyof DirectoryScannerEvent>(event: U, listener: DirectoryScannerEvent[U]): this;
+  emit<U extends keyof DirectoryScannerEvent>(event: U, ...args: Parameters<DirectoryScannerEvent[U]>): boolean;
+}
+
+export class DirectoryScanner extends EventEmitter {
   private files = new Map<string, Stats>();
   private size = 0;
   private fileCount = 0;
   private ready = false;
   private spy?: FileSpy;
 
-  constructor(private path: string, private watch = true) {}
+  constructor(private path: string, private watch = true) {
+    super();
+  }
 
   public async scan() {
-    console.log('===> Scanning %s', this.path);
-
     this.spy = filespy(this.path)
       .on('all', this.fileEvent.bind(this))
       .on('ready', () => {
-        console.log('---> Initial scan completed.');
         this.ready = true;
-        this.printUsage();
-        this.freeBlocks();
+        this.emitUsage();
 
         if (!this.watch) {
           this.shutdown();
@@ -57,8 +64,7 @@ export class DirectoryScanner {
     }
 
     if (this.ready) {
-      this.printUsage();
-      this.freeBlocks();
+      this.emitUsage();
     }
   }
 
@@ -83,13 +89,8 @@ export class DirectoryScanner {
     this.size -= stat.size;
   }
 
-  private printUsage() {
-    console.log(
-      '[%d] files, [%s] used, [%s] avg',
-      this.fileCount,
-      byteSize(this.size),
-      byteSize(this.size / (0 == this.fileCount ? 1 : this.fileCount))
-    );
+  private emitUsage() {
+    this.emit('stat', { count: this.fileCount, size: this.size });
   }
 
   private sortedFileList(): FileRef[] {
@@ -113,6 +114,4 @@ export class DirectoryScanner {
 
     return candidates;
   }
-
-  private freeBlocks() {}
 }
