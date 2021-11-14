@@ -1,6 +1,7 @@
 import { Stats } from 'fs';
 import { FileSpy, filespy } from 'filespy';
 import EventEmitter from 'events';
+import path from 'path';
 
 export interface FileRef {
   path: string;
@@ -99,7 +100,7 @@ export class DirectoryScanner extends EventEmitter {
       files.push({ path, stat });
     }
 
-    return files.sort((a, b) => (a.stat.ctimeMs < b.stat.ctimeMs ? 1 : -1));
+    return files.sort((a, b) => (a.stat.ctimeMs > b.stat.ctimeMs ? 1 : -1));
   }
 
   public collectCandidates(freeBytes: number): FileRef[] {
@@ -109,9 +110,14 @@ export class DirectoryScanner extends EventEmitter {
         break;
       }
 
+      freeBytes -= file.stat.size;
       candidates.push(file);
     }
 
     return candidates;
+  }
+
+  public fullPath(part: string): string {
+    return path.join(this.path, part);
   }
 }

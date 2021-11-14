@@ -45,6 +45,10 @@ export class SpaceCalculator {
     return (await check(this.path)).available;
   }
 
+  public async totalBytes() {
+    return (await check(this.path)).total;
+  }
+
   private static async calculatePercent(path: string, percent: number): Promise<number> {
     const diskusage = await check(path);
     return Math.floor((diskusage.total * percent) / 100);

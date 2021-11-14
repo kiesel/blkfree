@@ -2,6 +2,7 @@ import { DirectoryScanner } from './directory-scanner';
 import { CommandModule } from 'yargs';
 import { SpaceCalculator } from './space-calculator';
 import byteSize from 'byte-size';
+import { rm } from 'fs/promises';
 
 interface CommandArgs {
   path: string;
@@ -14,7 +15,10 @@ export class FreeCommand {
   private scanner?: DirectoryScanner;
   private calc?: SpaceCalculator;
 
+  private delete = false;
+
   public async run(args: CommandArgs) {
+    this.delete = args.delete;
     this.calc = await SpaceCalculator.fromString(args.path, args.reserve);
 
     console.log('===> Scanning %s', args.path);
@@ -23,27 +27,42 @@ export class FreeCommand {
   }
 
   private async printStat(stat: { count: number; size: number }) {
+    if (undefined === this.calc || undefined === this.scanner) {
+      return;
+    }
+
+    const bytesToFree = await this.calc.bytesToFree();
+
+    if (bytesToFree <= 0) {
+      return;
+    }
+
     console.log(
-      '[%d] files, [%s] used, [%s] avg',
+      '   > [%d] files, [%s] used, [%s] avg',
       stat.count,
       byteSize(stat.size),
       byteSize(stat.size / (0 == stat.count ? 1 : stat.count))
     );
 
-    if (undefined !== this.calc) {
-      const bytesToFree = await this.calc.bytesToFree();
-      console.log('Need to free [%s]', byteSize(bytesToFree));
+    console.log(
+      '---> Total [%s], available [%s], need to free [%s]',
+      byteSize(await this.calc.totalBytes()),
+      byteSize(await this.calc.availableBytes()),
+      byteSize(bytesToFree)
+    );
 
-      const candidates = this.scanner?.collectCandidates(bytesToFree) ?? [];
-      console.log(candidates);
+    const candidates = this.scanner.collectCandidates(bytesToFree) ?? [];
 
-      for (const candidate of candidates) {
-        console.log(
-          '   > Deleting %s [%s] from %s',
-          candidate.path,
-          byteSize(candidate.stat.size),
-          candidate.stat.ctime.toISOString()
-        );
+    for (const candidate of candidates) {
+      console.log(
+        '   > Deleting %s [%s]\n     from %s\n',
+        candidate.path,
+        byteSize(candidate.stat.size),
+        candidate.stat.ctime.toISOString()
+      );
+
+      if (this.delete) {
+        await rm(this.scanner.fullPath(candidate.path), { recursive: false });
       }
     }
   }
